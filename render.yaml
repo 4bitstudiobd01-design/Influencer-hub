@@ -1,0 +1,40 @@
+databases:
+  - name: bit-fluencer-db
+    databaseName: bit_fluencer
+    user: bit_fluencer
+    plan: free
+
+services:
+  - type: web
+    name: bit-fluencer-api
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: bit-fluencer-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: bit-fluencer-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: bit-fluencer-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: bit-fluencer-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: bit-fluencer-db
+          property: database
+      - key: DB_SSL
+        value: 'true'
+      # Set after the Vercel frontend is deployed, e.g. https://your-app.vercel.app
+      # (no trailing slash) — required for the API's CORS check to allow it.
+      - key: WEB_ORIGIN
+        sync: false

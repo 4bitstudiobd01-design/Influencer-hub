@@ -21,6 +21,10 @@ import { ContentDailyStatEntity } from '../modules/content/content-daily-stat.en
         username: config.get<string>('DB_USER', 'postgres'),
         password: config.get<string>('DB_PASSWORD', 'admin'),
         database: config.get<string>('DB_NAME', 'bit_fluencer'),
+        // Render/most managed Postgres hosts require SSL with a self-signed chain;
+        // local Postgres and the docker-compose db don't use SSL at all, so this is
+        // opt-in via DB_SSL rather than always-on.
+        ssl: config.get<string>('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
         entities: [
           DealEntity,
           PayoutEntity,
