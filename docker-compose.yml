@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bit_fluencer
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      # Host 5433 avoids clashing with a local Postgres already on 5432; the api
+      # container still talks to this one over the internal network at db:5432.
+      - '5433:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d bit_fluencer']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: admin
+      DB_NAME: bit_fluencer
+      PORT: 4000
+      # Browser requests to /api/* arrive via nginx same-origin, so this only matters
+      # for someone hitting the api container directly — kept for completeness.
+      WEB_ORIGIN: http://localhost:8072
+    expose:
+      - '4000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Relative + same-origin through nginx — no CORS, no hardcoded host/port.
+        NEXT_PUBLIC_API_URL: /api/v1
+    restart: unless-stopped
+    expose:
+      - '3000'
+    depends_on:
+      - api
+
+  nginx:
+    build:
+      context: ./nginx
+    restart: unless-stopped
+    ports:
+      - '8072:80'
+    depends_on:
+      - api
+      - web
+
+volumes:
+  db-data:
